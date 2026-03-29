@@ -3,13 +3,18 @@ import numpy as np
 
 def sharpen_image(image):
     """
-    High pass sharpening:
-    subtract blurred from original and add back (unsharp mask style)
+    Laplacian sharpening:
+    Use a Laplacian kernel to emphasize the high-frequency components (edges)
     """
-    # Create blurred version
-    blurred = cv2.GaussianBlur(image, (5, 5), 0)
+    # Define a common sharpening kernel
+    # [ 0, -1,  0]
+    # [-1,  5, -1]
+    # [ 0, -1,  0]
+    kernel = np.array([[0, -1, 0],
+                      [-1, 5, -1],
+                      [0, -1, 0]])
 
-    # High pass = original - blurred, added back to original
-    sharpened = cv2.addWeighted(image, 1.5, blurred, -0.5, 0)
+    # Filter the image using the kernel
+    sharpened = cv2.filter2D(image, -1, kernel)
 
     return sharpened

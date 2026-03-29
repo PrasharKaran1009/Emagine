@@ -1,120 +1,143 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [originalImage, setOriginalImage] = useState(null)
+  const [processedImage, setProcessedImage] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    setOriginalImage(URL.createObjectURL(file))
+    setProcessedImage(null)
+    setLoading(true)
+    setError(null)
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const response = await fetch('http://localhost:8000/process', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to process image')
+      }
+
+      const blob = await response.blob()
+      setProcessedImage(URL.createObjectURL(blob))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const reset = () => {
+    setOriginalImage(null)
+    setProcessedImage(null)
+    setLoading(false)
+    setError(null)
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-wrapper">
+      <nav className="navbar">
+        <div className="logo">
+          E<span>magine</span>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
+        <div className="nav-links">
+          {/* Add nav links if needed */}
         </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </nav>
 
-      <div className="ticks"></div>
+      <div className="container">
+        {!originalImage && !loading ? (
+          <>
+            <h1 className="hero-title">Enhance Image Quality</h1>
+            <p className="hero-subtitle">Upscale, sharpen, and improve colors of your images for free.</p>
+            
+            <div className="main-tool-area">
+              <div className="upload-btn-wrapper">
+                <button className="btn-primary">Select Image</button>
+                <input 
+                  type="file" 
+                  className="file-input" 
+                  accept="image/*" 
+                  onChange={handleFileUpload} 
+                />
+              </div>
+              <p style={{marginTop: '20px', color: '#666'}}>or drop image here</p>
+            </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+            <div className="features-grid">
+              <div className="feature-card">
+                <div className="feature-icon">✨</div>
+                <h3>AI Sharpening</h3>
+                <p>Use Laplacian kernels to bring out hidden details in blurry photos.</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">🎨</div>
+                <h3>Color Boost</h3>
+                <p>Advanced CLAHE technology for perfect contrast and vibrant colors.</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">🔍</div>
+                <h3>Upscale</h3>
+                <p>Increase resolution using an image enhancement upscaler.</p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="main-tool-area" style={{padding: '40px'}}>
+            {loading ? (
+              <div className="loader-container">
+                <div className="spinner"></div>
+                <h2>Processing your image...</h2>
+                <p>Applying DIP algorithms to enhance quality</p>
+              </div>
+            ) : (
+              <div className="result-container">
+                <div className="image-preview-grid">
+                  <div className="image-box">
+                    <h4>Original Image</h4>
+                    <div className="image-wrapper">
+                      <img src={originalImage} alt="Original" />
+                    </div>
+                  </div>
+                  <div className="image-box">
+                    <h4>Enhanced Result</h4>
+                    <div className="image-wrapper">
+                      <img src={processedImage} alt="Processed" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="action-bar">
+                  <a 
+                    href={processedImage} 
+                    download="enhanced-image.jpg" 
+                    className="btn-primary"
+                    style={{padding: '12px 32px', fontSize: '18px'}}
+                  >
+                    Download Image
+                  </a>
+                  <button className="btn-secondary" onClick={reset}>
+                    Start Over
+                  </button>
+                </div>
+              </div>
+            )}
+            {error && <p className="error-message">{error}</p>}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 

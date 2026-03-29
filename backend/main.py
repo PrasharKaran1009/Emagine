@@ -1,4 +1,5 @@
 import cv2
+import os
 from pipeline import process_pipeline
 
 def main():
@@ -10,12 +11,21 @@ def main():
         return
 
     # Process image
-    output = process_pipeline(image)
+    output, intermediate_results = process_pipeline(image)
 
-    # Save output (also relative to backend/)
-    cv2.imwrite("output/result.jpg", output)
+    # Ensure output directory exists
+    output_dir = "output"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-    print("Processing complete. Output saved in output/")
+    # Save intermediate results for verification
+    for name, img in intermediate_results.items():
+        cv2.imwrite(f"{output_dir}/{name}.jpg", img)
+
+    # Save final output
+    cv2.imwrite(f"{output_dir}/result.jpg", output)
+
+    print(f"Processing complete. {len(intermediate_results)} steps saved in {output_dir}/")
 
 if __name__ == "__main__":
     main()

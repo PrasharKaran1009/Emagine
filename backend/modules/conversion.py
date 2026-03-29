@@ -7,8 +7,11 @@ def to_grayscale_and_merge(image):
     
     h, s, v = cv2.split(hsv)
     
-    # Equalize only the V (brightness) channel
-    v_eq = cv2.equalizeHist(v)
+    # Use CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    # This is better than global equalization as it works on small tiles
+    # to avoid over-amplifying noise in homogeneous areas.
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    v_eq = clahe.apply(v)
     
     # Merge back with original H and S (colors untouched)
     hsv_eq = cv2.merge([h, s, v_eq])
