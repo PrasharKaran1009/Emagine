@@ -3,16 +3,10 @@ import os
 import subprocess
 import tempfile
 
+
 def resize_image(image, scale=2):
     """
-    Resize image by scaling factor
-
-    Args:
-        image: input image
-        scale: scaling factor (default = 2x)
-
-    Returns:
-        Resized image
+    Resize image by scaling factor (fallback only)
     """
     height, width = image.shape[:2]
 
@@ -22,10 +16,11 @@ def resize_image(image, scale=2):
     resized = cv2.resize(
         image,
         (new_width, new_height),
-        interpolation=cv2.INTER_CUBIC  # best for upscaling
+        interpolation=cv2.INTER_CUBIC
     )
 
     return resized
+
 
 def _upscale_with_realesrgan_ncnn_vulkan(image, scale=2):
     exe_path = os.getenv("EMAGINE_REALESRGAN_EXE")
@@ -56,7 +51,7 @@ def _upscale_with_realesrgan_ncnn_vulkan(image, scale=2):
     if not exe_path or not os.path.exists(exe_path):
         return None
 
-    model_name = os.getenv("EMAGINE_REALESRGAN_MODEL_NAME", "realesr-general-x4v3")
+    model_name = "RealESRGAN_General_x4_v3"
     tile_size = os.getenv("EMAGINE_REALESRGAN_TILE", "0")
     gpu_id = os.getenv("EMAGINE_REALESRGAN_GPU")
 
@@ -73,18 +68,12 @@ def _upscale_with_realesrgan_ncnn_vulkan(image, scale=2):
 
         cmd = [
             exe_path,
-            "-i",
-            input_path,
-            "-o",
-            output_path,
-            "-s",
-            str(requested_scale),
-            "-n",
-            model_name,
-            "-t",
-            str(tile_size),
-            "-f",
-            "png",
+            "-i", input_path,
+            "-o", output_path,
+            "-s", str(requested_scale),
+            "-n", model_name,
+            "-t", str(tile_size),
+            "-f", "png",
         ]
 
         if model_dir:
@@ -104,35 +93,23 @@ def _upscale_with_realesrgan_ncnn_vulkan(image, scale=2):
         upscaled = cv2.imread(output_path, cv2.IMREAD_COLOR)
         return upscaled
 
-def enhance_resolution(image, scale=2, model_path=None, model_name="espcn"):
+
+def enhance_resolution(image, scale=2):
     """
-    Upscale image using a super-resolution model when available, otherwise fall back to bicubic resize.
+    Priority:
+    1. RealESRGAN (AI)
+    2. Fallback: OpenCV resize
     """
+
     if image is None:
         return None
 
-    env_model_path = os.getenv("EMAGINE_SR_MODEL")
-    resolved_model_path = env_model_path or model_path
-    resolved_model_name = os.getenv("EMAGINE_SR_MODEL_NAME", model_name)
-
-    if not resolved_model_path:
-        default_model_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "models", f"sr_x{int(scale)}.pb")
-        )
-        if os.path.exists(default_model_path):
-            resolved_model_path = default_model_path
-
-    if resolved_model_path and os.path.exists(resolved_model_path):
-        try:
-            dnn_superres = cv2.dnn_superres.DnnSuperResImpl_create()
-            dnn_superres.readModel(resolved_model_path)
-            dnn_superres.setModel(resolved_model_name, int(scale))
-            return dnn_superres.upsample(image)
-        except Exception:
-            pass
-
+    # 🔥 Try RealESRGAN FIRST
     upscaled = _upscale_with_realesrgan_ncnn_vulkan(image, scale=scale)
     if upscaled is not None:
+        print("Using RealESRGAN")
         return upscaled
 
+    # ❌ Fallback
+    print("Using OpenCV resize (fallback)")
     return resize_image(image, scale=scale)

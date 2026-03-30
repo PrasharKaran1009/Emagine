@@ -1,20 +1,25 @@
 import cv2
 import numpy as np
 
-def sharpen_image(image):
+def sharpen_image(image, strength=1.5):
     """
-    Laplacian sharpening:
-    Use a Laplacian kernel to emphasize the high-frequency components (edges)
+    Unsharp Masking:
+    Produces natural sharpening without amplifying noise too much
     """
-    # Define a common sharpening kernel
-    # [ 0, -1,  0]
-    # [-1,  5, -1]
-    # [ 0, -1,  0]
-    kernel = np.array([[0, -1, 0],
-                      [-1, 5, -1],
-                      [0, -1, 0]])
 
-    # Filter the image using the kernel
-    sharpened = cv2.filter2D(image, -1, kernel)
+    if image is None:
+        return None
+
+    # Blur image (low-pass filter)
+    blurred = cv2.GaussianBlur(image, (0, 0), sigmaX=1.0, sigmaY=1.0)
+
+    # Combine original + detail
+    sharpened = cv2.addWeighted(
+        image, 
+        1 + strength,   # original weight
+        blurred, 
+        -strength,      # subtract blur
+        0
+    )
 
     return sharpened
