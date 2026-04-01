@@ -2,6 +2,7 @@ import { useState } from "react";
 import UploadBox from "../components/UploadBox";
 import Loader from "../components/Loader";
 import ImageSlider from "../components/ImageSlider";
+import EncodeAnimation from "../components/EncodeAnimation";
 import { useTheme } from "../theme/ThemeContext";
 
 function Encode() {
@@ -9,6 +10,7 @@ function Encode() {
   const [originalUrl, setOriginalUrl] = useState(null);
   const [message, setMessage] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [showAnimation, setShowAnimation] = useState(false);
   const [resultImage, setResultImage] = useState(null);
   const [error, setError] = useState(null);
   const { theme, isDark } = useTheme();
@@ -26,6 +28,7 @@ function Encode() {
       return;
     }
     setProcessing(true);
+    setShowAnimation(true);
     setError(null);
 
     try {
@@ -47,6 +50,7 @@ function Encode() {
       setResultImage(data.image_url);
     } catch (err) {
       setError(err.message);
+      setShowAnimation(false);
     } finally {
       setProcessing(false);
     }
@@ -58,6 +62,7 @@ function Encode() {
     setResultImage(null);
     setMessage("");
     setError(null);
+    setShowAnimation(false);
   };
 
   // Mock an allSteps object to make ImageSlider happy since we only have before/after
@@ -65,6 +70,12 @@ function Encode() {
 
   return (
     <div style={{ display: "flex", width: "100%", height: "100%", flexGrow: 1 }}>
+      <EncodeAnimation 
+        message={message} 
+        isVisible={showAnimation} 
+        isFetching={processing} 
+        onComplete={() => setShowAnimation(false)} 
+      />
       <div style={{
         ...styles.centerPanel,
         background: theme.colors.surface,
@@ -103,12 +114,18 @@ function Encode() {
                     placeholder="Enter the secret message to hide inside the image..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (file && message && !processing) handleEncode();
+                      }
+                    }}
                   />
                 </div>
 
                 {error && (
                   <div style={{...styles.errorBox, background: "rgba(255, 60, 60, 0.1)", color: "#ff4d4d", border: "1px solid rgba(255, 60, 60, 0.3)"}}>
-                    ⚠️ {error}
+                    {error}
                   </div>
                 )}
 
@@ -116,6 +133,7 @@ function Encode() {
                   style={{
                     ...styles.encodeButton, 
                     background: file && message ? theme.colors.primary : theme.colors.borderSoft,
+                    color: (file && message) ? (isDark ? theme.colors.background : "#fff") : theme.colors.muted,
                     cursor: file && message ? "pointer" : "not-allowed",
                     opacity: processing ? 0.7 : 1
                   }}
@@ -137,7 +155,6 @@ function Encode() {
               <div className="card-animated window-glow" style={{ width: "100%", borderRadius: "16px", marginTop: "20px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", borderBottom: `1px solid ${theme.colors.borderSoft}` }}>
                   <h3 style={{ margin: 0, color: theme.colors.text }}>Encoding Verification View</h3>
-                  <button onClick={handleReset} style={{...styles.resetButton, color: theme.colors.primary}}>Perform Another</button>
                 </div>
                 
                 <ImageSlider 

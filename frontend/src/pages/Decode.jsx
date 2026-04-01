@@ -1,13 +1,16 @@
 import { useState } from "react";
 import UploadBox from "../components/UploadBox";
 import Loader from "../components/Loader";
+import DecodeAnimation from "../components/DecodeAnimation";
 import { useTheme } from "../theme/ThemeContext";
 
 function Decode() {
   const [file, setFile] = useState(null);
   const [originalUrl, setOriginalUrl] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [showAnimation, setShowAnimation] = useState(false);
   const [secretMessage, setSecretMessage] = useState(null);
+  const [apiError, setApiError] = useState(null);
   const [error, setError] = useState(null);
   const { theme, isDark } = useTheme();
 
@@ -15,13 +18,17 @@ function Decode() {
     setFile(selectedFile);
     setOriginalUrl(url);
     setSecretMessage(null);
+    setApiError(null);
     setError(null);
   };
 
   const handleDecode = async () => {
     if (!file) return;
     setProcessing(true);
+    setShowAnimation(true);
     setError(null);
+    setApiError(null);
+    setSecretMessage(null);
 
     try {
       const formData = new FormData();
@@ -41,6 +48,7 @@ function Decode() {
       setSecretMessage(data.secret_message);
     } catch (err) {
       setError(err.message);
+      setApiError(err.message);
     } finally {
       setProcessing(false);
     }
@@ -51,10 +59,19 @@ function Decode() {
     setOriginalUrl(null);
     setSecretMessage(null);
     setError(null);
+    setApiError(null);
+    setShowAnimation(false);
   };
 
   return (
     <div style={{ display: "flex", width: "100%", height: "100%", flexGrow: 1 }}>
+      <DecodeAnimation 
+        isVisible={showAnimation} 
+        isFetching={processing}
+        decodedMessage={secretMessage}
+        apiError={apiError}
+        onClose={() => setShowAnimation(false)} 
+      />
       <div style={{
         ...styles.centerPanel,
         background: theme.colors.surface,
@@ -82,7 +99,7 @@ function Decode() {
                 
                 {error && (
                   <div style={{...styles.errorBox, background: "rgba(255, 60, 60, 0.1)", color: "#ff4d4d", border: "1px solid rgba(255, 60, 60, 0.3)"}}>
-                    ⚠️ {error}
+                    {error}
                   </div>
                 )}
 
@@ -90,6 +107,7 @@ function Decode() {
                   style={{
                     ...styles.decodeButton, 
                     background: file ? theme.colors.primary : theme.colors.borderSoft,
+                    color: file ? (isDark ? theme.colors.background : "#fff") : theme.colors.muted,
                     cursor: file ? "pointer" : "not-allowed",
                     opacity: processing ? 0.7 : 1
                   }}
@@ -110,8 +128,29 @@ function Decode() {
             {secretMessage && (
               <div className="card-animated window-glow" style={{ width: "100%", maxWidth: "800px", borderRadius: "16px", marginTop: "20px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", borderBottom: `1px solid ${theme.colors.borderSoft}`, background: isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.05)" }}>
-                  <h3 style={{ margin: 0, color: theme.colors.primary }}>🔒 Decrypted Payload</h3>
-                  <button onClick={handleReset} style={{...styles.resetButton, color: theme.colors.primary}}>Perform Another</button>
+                  <h3 style={{ margin: 0, color: theme.colors.primary }}>Decrypted Payload</h3>
+                  <button 
+                    onClick={handleReset} 
+                    style={{
+                      width: "30px",
+                      height: "30px",
+                      background: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.45)",
+                      color: isDark ? "#fff" : "#fff",
+                      border: "none",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      padding: 0
+                    }}
+                    title="Clear and perform another decoding"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
                 </div>
                 
                 <div style={{ padding: "40px", width: "100%", minHeight: "300px" }}>
