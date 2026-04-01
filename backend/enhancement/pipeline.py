@@ -1,10 +1,10 @@
-from modules.conversion import apply_clahe_hsv
-from modules.smoothing import denoise_image
-from modules.resize import enhance_resolution
-from modules.sharpening import sharpen_image
-from modules.color_enhance import boost_saturation, adjust_brightness_contrast
-from utils import config
-from utils.analyzer import analyze_image
+from enhancement.modules.conversion import apply_clahe_hsv
+from enhancement.modules.smoothing import denoise_image
+from enhancement.modules.resize import enhance_resolution
+from enhancement.modules.sharpening import sharpen_image
+from enhancement.modules.color_enhance import boost_saturation, adjust_brightness_contrast
+from enhancement.utils import config
+from enhancement.utils.analyzer import analyze_image
 
 
 def process_pipeline(image):

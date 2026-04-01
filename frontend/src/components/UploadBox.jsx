@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTheme } from "../theme/ThemeContext";
 
-function UploadBox({ setImage, setProcessing, setResult }) {
+function UploadBox({ setImage, setProcessing, setResult, onUpload }) {
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState(null);
   const { theme } = useTheme();
@@ -13,9 +13,15 @@ function UploadBox({ setImage, setProcessing, setResult }) {
     
     // 6. CRUCIAL UX FIX: RESET ALL STATE BEFORE NEW PROCESSING
     setPreview(url);
-    setImage(url);
-    setResult(null); // wipe previous frontend history cleanly
-    setProcessing(true);
+    if (setImage) setImage(url);
+    if (setResult) setResult(null); // wipe previous frontend history cleanly
+    if (setProcessing) setProcessing(true);
+
+    if (onUpload) {
+      await onUpload(file, url);
+      if (setProcessing) setProcessing(false);
+      return;
+    }
 
     try {
       const formData = new FormData();

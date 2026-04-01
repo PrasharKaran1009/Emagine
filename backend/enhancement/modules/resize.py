@@ -2,7 +2,7 @@ import cv2
 import os
 import subprocess
 import tempfile
-from utils import config
+from enhancement.utils import config
 
 
 def resize_image(image, scale=2):
