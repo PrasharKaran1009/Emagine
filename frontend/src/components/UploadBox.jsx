@@ -1,39 +1,68 @@
 import { useState } from "react";
-import { theme } from "../theme/theme";
+import { useTheme } from "../theme/ThemeContext";
 
 function UploadBox({ setImage, setProcessing, setResult }) {
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState(null);
+  const { theme } = useTheme();
 
   const handleFile = async (file) => {
     if (!file) return;
 
     const url = URL.createObjectURL(file);
+    
+    // 6. CRUCIAL UX FIX: RESET ALL STATE BEFORE NEW PROCESSING
     setPreview(url);
     setImage(url);
+    setResult(null); // wipe previous frontend history cleanly
     setProcessing(true);
 
     try {
       const formData = new FormData();
-      formData.append("file", file); // Changed from "image" to "file"
+      formData.append("file", file);
 
-      const res = await fetch("http://localhost:8000/process", {
+      const res = await fetch("http://localhost:8000/process_stream", {
         method: "POST",
         body: formData,
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to process image");
+      if (!res.ok) throw new Error("Failed to process image");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let done = false;
+      
+      let streamedResult = { steps: {} };
+      setResult(streamedResult); // initialized clear stream container
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          const parts = chunk.split("\n").filter((p) => p.trim());
+          for (let p of parts) {
+            try {
+              const data = JSON.parse(p);
+              if (data.step && data.url) {
+                streamedResult.steps[data.step] = data.url;
+                
+                if (data.step === "5_final") {
+                  streamedResult.final = data.url;
+                }
+                
+                setResult({ ...streamedResult, steps: { ...streamedResult.steps } });
+              }
+            } catch (err) {
+              console.error("Parse error chunk:", err);
+            }
+          }
+        }
       }
-
-      const data = await res.json();
-
-      console.log("BACKEND RESPONSE:", data);
-
-      setResult(data);
     } catch (err) {
       console.error("Upload failed:", err);
-      setResult(null);
+      // Wait to not abruptly empty valid preview on error immediately.
+      // But typically we should handle error UI visually.
     } finally {
       setProcessing(false);
     }
@@ -49,9 +78,10 @@ function UploadBox({ setImage, setProcessing, setResult }) {
     <div
       style={{
         ...styles.box,
+        background: theme.colors.surface,
         border: dragging
           ? `2px solid ${theme.colors.primary}`
-          : "2px dashed rgba(255,255,255,0.1)",
+          : `2px dashed ${theme.colors.border}`,
         boxShadow: dragging
           ? `0 0 20px ${theme.colors.primary}40`
           : "none",
@@ -66,12 +96,12 @@ function UploadBox({ setImage, setProcessing, setResult }) {
       {preview ? (
         <div style={styles.previewContainer}>
           <img src={preview} alt="preview" style={styles.image} />
-          <p style={styles.replace}>Click or drop to replace</p>
+          <p style={{...styles.replace, color: theme.colors.muted}}>Click or drop to replace</p>
         </div>
       ) : (
         <>
-          <h2 style={styles.title}>Drop your image here</h2>
-          <p style={styles.sub}>
+          <h2 style={{...styles.title, color: theme.colors.text}}>Drop your image here</h2>
+          <p style={{...styles.sub, color: theme.colors.muted}}>
             or <span style={{ color: theme.colors.primary }}>browse files</span>
           </p>
         </>
@@ -96,9 +126,8 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "column",
-    background: "rgba(255,255,255,0.02)",
     position: "relative",
-    transition: "0.3s ease",
+    transition: "all 0.3s ease",
     cursor: "pointer",
   },
   title: {
@@ -107,7 +136,6 @@ const styles = {
     marginBottom: "6px",
   },
   sub: {
-    color: "#9ca3af",
     fontSize: "14px",
   },
   input: {
@@ -129,7 +157,6 @@ const styles = {
   },
   replace: {
     fontSize: "12px",
-    color: "#9ca3af",
   },
 };
 

@@ -1,11 +1,16 @@
+import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
+import Header from "./components/Header";
+import Sidebar from "./components/Sidebar";
 import Enhancement from "./pages/Enhancement";
 import Encode from "./pages/Encode";
 import Decode from "./pages/Decode";
-import { theme } from "./theme/theme";
+import { useTheme } from "./theme/ThemeContext";
 
 function App() {
+  const { theme } = useTheme();
+  const [showPipeline, setShowPipeline] = useState(true);
+
   return (
     <Router>
       <div
@@ -13,26 +18,22 @@ function App() {
           minHeight: "100vh",
           background: theme.colors.background,
           color: theme.colors.text,
-          fontFamily: "Inter, sans-serif", // ✅ fixed (no theme.fonts)
+          fontFamily: "Inter, sans-serif",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        {/* Navbar */}
-        <Navbar />
+        <Header />
+        
+        <div style={{ display: "flex", flexGrow: 1, overflow: "hidden" }}>
+          <Sidebar showPipeline={showPipeline} setShowPipeline={setShowPipeline} />
 
-        {/* Main Content */}
-        <main
-          style={{
-            maxWidth: "1400px",
-            margin: "0 auto",
-            padding: "20px 24px",
-          }}
-        >
           <Routes>
-            <Route path="/" element={<Enhancement />} />
+            <Route path="/" element={<Enhancement showPipeline={showPipeline} />} />
             <Route path="/encode" element={<Encode />} />
             <Route path="/decode" element={<Decode />} />
           </Routes>
-        </main>
+        </div>
       </div>
     </Router>
   );

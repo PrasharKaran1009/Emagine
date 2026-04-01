@@ -1,50 +1,36 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useTheme } from "../theme/ThemeContext";
 
-
-function ImageSlider({ before, after }) {
-  const [sliderPosition, setSliderPosition] = useState(50);
-  const [isDragging, setIsDragging] = useState(false);
-  const [containerWidth, setContainerWidth] = useState(0);
-  const containerRef = useRef(null);
+function ImageSlider({ before, after, allSteps, activeStepKey, onClose, processing }) {
+  const { theme, isDark } = useTheme();
+  const [view, setView] = useState("after"); // 'before' | 'after'
+  const [downloadStep, setDownloadStep] = useState(activeStepKey || "5_final");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
       }
-    });
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const updatePosition = useCallback((clientX) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const percentage = (x / rect.width) * 100;
-    setSliderPosition(Math.max(2, Math.min(98, percentage)));
-  }, []);
+  useEffect(() => {
+    if (activeStepKey) setDownloadStep(activeStepKey);
+  }, [activeStepKey]);
 
-  const handleMouseMove = useCallback(
-    (e) => {
-      if (!isDragging) return;
-      updatePosition(e.clientX);
-    },
-    [isDragging, updatePosition]
-  );
-
-  const handleTouchMove = useCallback(
-    (e) => {
-      if (!isDragging) return;
-      updatePosition(e.touches[0].clientX);
-    },
-    [isDragging, updatePosition]
-  );
-
-  const stopDragging = useCallback(() => setIsDragging(false), []);
+  // Forces view to 'after' when a new step is clicked in the timeline
+  useEffect(() => {
+    setView("after");
+  }, [activeStepKey]);
 
   const handleDownload = useCallback(() => {
+    const urlToDownload = (allSteps && downloadStep && allSteps[downloadStep]) ? allSteps[downloadStep] : after;
+    const stepName = downloadStep || "final_stage";
+
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
@@ -54,108 +40,208 @@ function ImageSlider({ before, after }) {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0);
       const link = document.createElement("a");
-      link.download = "after.png";
+      link.download = `emagine_${stepName}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     };
-    img.src = after;
-  }, [after]);
+    img.src = urlToDownload;
+  }, [after, allSteps, downloadStep]);
 
   if (!before || !after) {
-    return <div style={styles.loading}>Loading comparison...</div>;
+    return <div style={{ padding: "2rem", textAlign: "center", color: theme.colors.muted }}>Optimizing visuals...</div>;
   }
+
+  // Pure aesthetic toggle styles
+  const activeTabStyle = {
+    padding: "6px 16px",
+    background: isDark ? "#ffffff" : theme.colors.surface,
+    color: isDark ? "#000000" : theme.colors.text,
+    fontWeight: "600",
+    borderRadius: "20px",
+    fontSize: "13px",
+    border: "none",
+    cursor: "pointer",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+    transition: "all 0.2s",
+  };
+
+  const inactiveTabStyle = {
+    padding: "6px 16px",
+    background: "transparent",
+    color: isDark ? "rgba(255,255,255,0.7)" : theme.colors.muted,
+    fontWeight: "500",
+    borderRadius: "20px",
+    fontSize: "13px",
+    border: "none",
+    cursor: "pointer",
+    transition: "all 0.2s",
+  };
 
   return (
     <div style={styles.wrapper}>
-      <div
-        ref={containerRef}
-        style={styles.container}
-        onMouseMove={handleMouseMove}
-        onMouseUp={stopDragging}
-        onMouseLeave={stopDragging}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={stopDragging}
-      >
-        {/* AFTER image — full background */}
-        <img src={after} alt="After" style={styles.image} draggable={false} />
-
-        {/* BEFORE overlay — clips at slider position */}
-        <div
-          style={{
-            ...styles.beforeOverlay,
-            width: `${sliderPosition}%`,
-          }}
-        >
-          <img
-            src={before}
-            alt="Before"
-            style={{ ...styles.beforeImage, width: containerWidth > 0 ? `${containerWidth}px` : "100vw" }}
-            draggable={false}
+      {/* Container simulating the reference screenshots */}
+      <div style={{ ...styles.card, background: theme.colors.surfaceGlass, border: `1px solid ${theme.colors.borderSoft}` }}>
+        <div style={styles.imageContainer}>
+          
+          <img 
+            src={view === "before" ? before : after} 
+            alt={view}
+            style={styles.image} 
           />
+
+          {/* Top Left Floating Toggle Pill */}
+          <div style={{...styles.toggleWrapper, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)"}}>
+            <button 
+              onClick={() => setView("before")} 
+              style={view === "before" ? activeTabStyle : inactiveTabStyle}
+            >
+              Before
+            </button>
+            <button 
+              onClick={() => setView("after")} 
+              style={view === "after" ? activeTabStyle : inactiveTabStyle}
+            >
+              After
+            </button>
+          </div>
+
+          {/* Top Right Close Button (Only valid when not actively streaming) */}
+          {!processing && onClose && (
+            <button
+               onClick={onClose}
+               style={styles.closeBtn}
+               title="Clear Session"
+            >
+               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                 <line x1="18" y1="6" x2="6" y2="18"></line>
+                 <line x1="6" y1="6" x2="18" y2="18"></line>
+               </svg>
+            </button>
+          )}
+
         </div>
+      </div>
 
-        {/* Divider line */}
-        <div
-          style={{
-            ...styles.divider,
-            left: `${sliderPosition}%`,
-          }}
-        />
+      {/* BOTTOM ACTIONS LAYER */}
+      <div style={styles.downloadRow}>
+        {allSteps && (
+          <div style={{ position: "relative" }} ref={dropdownRef}>
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              style={{
+                ...styles.selectDropdown,
+                background: theme.colors.surface,
+                color: theme.colors.text,
+                border: `1px solid ${theme.colors.border}`,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "12px",
+              }}
+            >
+              <span>
+                {{
+                  "1_denoise": "Step 1: Denoise",
+                  "2_upscale": "Step 2: Upscale",
+                  "3_clahe": "Step 3: CLAHE",
+                  "4_color": "Step 4: Color",
+                  "5_final": "Final Render",
+                }[downloadStep] || downloadStep}
+              </span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isDropdownOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
 
-        {/* Drag handle */}
-        <div
+            {isDropdownOpen && (
+              <div style={{
+                position: "absolute",
+                bottom: "calc(100% + 12px)",
+                left: 0,
+                width: "100%",
+                background: theme.colors.surface,
+                border: `1px solid ${theme.colors.borderSoft}`,
+                borderRadius: "16px",
+                overflow: "hidden",
+                boxShadow: "0 -8px 30px rgba(0,0,0,0.5)",
+                zIndex: 100,
+                display: "flex",
+                flexDirection: "column",
+                padding: "8px",
+                gap: "4px",
+                backdropFilter: "blur(12px)",
+              }}>
+                {Object.keys(allSteps).map((stepKey) => {
+                  const label = {
+                    "1_denoise": "Step 1: Denoise",
+                    "2_upscale": "Step 2: Upscale",
+                    "3_clahe": "Step 3: CLAHE",
+                    "4_color": "Step 4: Color",
+                    "5_final": "Final Render",
+                  }[stepKey] || stepKey;
+                  
+                  const isSelected = downloadStep === stepKey;
+
+                  return (
+                    <button
+                      key={stepKey}
+                      onClick={() => {
+                        setDownloadStep(stepKey);
+                        setIsDropdownOpen(false);
+                      }}
+                      style={{
+                        padding: "10px 16px",
+                        background: isSelected ? theme.colors.primary + "20" : "transparent",
+                        color: isSelected ? theme.colors.primary : theme.colors.text,
+                        border: "none",
+                        borderRadius: "10px",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: isSelected ? "700" : "500",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) e.target.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) e.target.style.background = "transparent";
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        <button 
           style={{
-            ...styles.handle,
-            left: `${sliderPosition}%`,
-          }}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            setIsDragging(true);
-          }}
-          onTouchStart={() => setIsDragging(true)}
+            ...styles.downloadBtn,
+            background: "#b829e3", // vibrant purple from reference image
+            color: "#ffffff",
+            boxShadow: `0 4px 15px rgba(184, 41, 227, 0.4)`
+          }} 
+          onClick={handleDownload}
         >
           <svg
             width="20"
             height="20"
-            viewBox="0 0 20 20"
+            viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <path
-              d="M7 5L2 10l5 5M13 5l5 5-5 5"
-              stroke="#555"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-        </div>
-
-        {/* Labels */}
-        <span style={{ ...styles.label, left: "16px" }}>Before</span>
-        <span style={{ ...styles.label, right: "16px" }}>After</span>
-      </div>
-
-      {/* Download button */}
-      <div style={styles.downloadRow}>
-        <button style={styles.downloadBtn} onClick={handleDownload}>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ flexShrink: 0 }}
-          >
-            <path
-              d="M8 1v9M4.5 6.5L8 10l3.5-3.5M2 12h12"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Download result
+          Download
         </button>
       </div>
     </div>
@@ -164,121 +250,91 @@ function ImageSlider({ before, after }) {
 
 const styles = {
   wrapper: {
-    position: "relative",
     width: "100%",
-    maxWidth: "900px",
-    margin: "0 auto",
-    userSelect: "none",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
   },
-
-  container: {
-    position: "relative",
+  card: {
     width: "100%",
-    aspectRatio: "16 / 9",
-    overflow: "hidden",
     borderRadius: "16px",
-    cursor: "col-resize",
+    padding: "8px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
   },
-
-  loading: {
-    padding: "2rem",
-    textAlign: "center",
-    color: "#888",
-  },
-
-  // After image — sits as the base layer, full size, cover
-  image: {
-    position: "absolute",
-    top: 0,
-    left: 0,
+  imageContainer: {
+    position: "relative",
     width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    pointerEvents: "none",
-    display: "block",
-  },
-
-  // Clip container — shrinks/grows horizontally
-  beforeOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    height: "100%",
+    display: "flex",
+    justifyContent: "center",
+    borderRadius: "12px",
     overflow: "hidden",
   },
-
-  // Before image — must always be full container width,
-  // NOT the clip div's width, so it doesn't squish
-  beforeImage: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    height: "100%",
-    objectFit: "cover",
-    pointerEvents: "none",
+  image: {
+    width: "auto",
+    maxWidth: "100%",
+    maxHeight: "70vh", // dynamically fits to full image correctly without cropping
+    objectFit: "contain",
     display: "block",
+    borderRadius: "8px",
   },
-
-  divider: {
+  toggleWrapper: {
     position: "absolute",
-    top: 0,
-    height: "100%",
-    width: "2px",
-    background: "#ffffff",
-    transform: "translateX(-50%)",
-    pointerEvents: "none",
-    zIndex: 5,
+    top: "16px",
+    left: "16px",
+    display: "flex",
+    gap: "2px",
+    padding: "4px",
+    borderRadius: "24px",
+    backdropFilter: "blur(8px)",
   },
-
-  handle: {
+  downloadRow: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "12px",
+    marginTop: "24px",
+  },
+  selectDropdown: {
+    padding: "16px 20px",
+    fontSize: "14px",
+    fontWeight: "600",
+    borderRadius: "30px",
+    cursor: "pointer",
+    outline: "none",
+    appearance: "none",
+    minWidth: "180px",
+  },
+  downloadBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "16px 36px",
+    fontSize: "16px",
+    fontWeight: "700",
+    border: "none",
+    borderRadius: "30px",
+    cursor: "pointer",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+  },
+  closeBtn: {
     position: "absolute",
-    top: "50%",
-    transform: "translate(-50%, -50%)",
-    width: "44px",
-    height: "44px",
-    background: "#ffffff",
+    top: "16px",
+    right: "16px",
+    width: "30px",
+    height: "30px",
+    background: "rgba(0, 0, 0, 0.45)",
+    color: "#ffffff",
+    border: "none",
     borderRadius: "50%",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    cursor: "grab",
-    boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
-    zIndex: 10,
-  },
-
-  label: {
-    position: "absolute",
-    bottom: "14px",
-    background: "rgba(0,0,0,0.45)",
-    color: "#ffffff",
-    fontSize: "13px",
-    fontWeight: "500",
-    padding: "4px 12px",
-    borderRadius: "20px",
-    pointerEvents: "none",
-    zIndex: 6,
-    backdropFilter: "blur(4px)",
-  },
-
-  downloadRow: {
-    display: "flex",
-    justifyContent: "flex-end",
-    marginTop: "12px",
-  },
-
-  downloadBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "8px 18px",
-    fontSize: "13px",
-    fontWeight: "500",
-    color: "#ffffff",
-    background: "#111111",
-    border: "none",
-    borderRadius: "20px",
     cursor: "pointer",
-    transition: "background 0.15s ease",
+    backdropFilter: "blur(4px)",
+    padding: 0,
+    zIndex: 10,
   },
 };
 
