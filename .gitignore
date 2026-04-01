@@ -71,3 +71,10 @@ backend/output/*
 # =========================
 *.cache
 .cache/
+
+# =========================
+# Temporary logs/diffs
+# =========================
+diff.txt
+status.txt
+diff_cached.txt

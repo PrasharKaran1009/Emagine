@@ -1,31 +1,60 @@
-import cv2
+from fastapi import FastAPI, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+import shutil
 import os
+import cv2
 from pipeline import process_pipeline
 
-def main():
-    # Load image (relative to backend/)
-    image = cv2.imread("input/sample.jpg")
+app = FastAPI()
 
-    if image is None:
-        print("Error: Image not found!")
-        return
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-    # Process image
-    output, intermediate_results = process_pipeline(image)
+INPUT_DIR = "input"
+OUTPUT_DIR = "output"
 
-    # Ensure output directory exists
-    output_dir = "output"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+os.makedirs(INPUT_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # Save intermediate results for verification
-    for name, img in intermediate_results.items():
-        cv2.imwrite(f"{output_dir}/{name}.jpg", img)
 
-    # Save final output
-    cv2.imwrite(f"{output_dir}/result.jpg", output)
+@app.post("/process")
+async def process(image: UploadFile = File(...)):
+    input_path = os.path.join(INPUT_DIR, "input.jpg")
 
-    print(f"Processing complete. {len(intermediate_results)} steps saved in {output_dir}/")
+    # Save uploaded file
+    with open(input_path, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
 
-if __name__ == "__main__":
-    main()
+    # Read image
+    img = cv2.imread(input_path)
+
+    # Run pipeline
+    output, steps = process_pipeline(img)
+
+    # Save outputs
+    step_paths = {}
+    for name, im in steps.items():
+        path = os.path.join(OUTPUT_DIR, f"{name}.jpg")
+        cv2.imwrite(path, im)
+        step_paths[name] = f"http://127.0.0.1:8000/output/{name}.jpg"
+
+    final_path = os.path.join(OUTPUT_DIR, "result.jpg")
+    cv2.imwrite(final_path, output)
+
+    return {
+        "final": "http://127.0.0.1:8000/output/result.jpg",
+        "steps": step_paths
+    }
+
+
+@app.get("/output/{filename}")
+def get_output(filename: str):
+    path = os.path.join(OUTPUT_DIR, filename)
+    return FileResponse(path)

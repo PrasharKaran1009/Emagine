@@ -11,6 +11,36 @@ It focuses on practical enhancement scenarios such as improving low-light images
 
 ---
 
+## ▶️ Running the Project
+
+### 🖥 Backend Setup
+
+cd c:\Users\karan\Desktop\Emagine\backend
+uvicorn app:app --reload --port 8000
+
+---
+
+### 🌐 Frontend Setup
+
+cd c:\Users\karan\Desktop\Emagine\frontend
+npm install   # Run this only the first time
+npm run dev
+
+---
+
+### 🔗 Access the Application
+
+Frontend: http://localhost:5173  
+Backend API Docs: http://localhost:8000/docs  
+
+---
+
+### ⚠️ Notes
+
+- Ensure Python and Node.js are installed  
+- Start backend before frontend  
+- Ports can be changed if needed  
+
 ## ❗ Problem Statement
 
 Low-quality images—whether due to noise, poor lighting, or low resolution—often fail to convey critical visual information. Existing tools are either too complex or not optimized for fast, modular enhancement.
@@ -113,3 +143,5 @@ To design a modular and efficient image enhancement pipeline that improves visua
 * Karan Prashar
 
 ---
+
+uvicorn app:app --reload --port 8000

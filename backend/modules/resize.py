@@ -2,6 +2,7 @@ import cv2
 import os
 import subprocess
 import tempfile
+from utils import config
 
 
 def resize_image(image, scale=2):
@@ -84,7 +85,8 @@ def _upscale_with_realesrgan_ncnn_vulkan(image, scale=2):
 
         try:
             subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except Exception:
+        except Exception as e:
+            print("RealESRGAN failed:", str(e))
             return None
 
         if not os.path.exists(output_path):
@@ -95,21 +97,37 @@ def _upscale_with_realesrgan_ncnn_vulkan(image, scale=2):
 
 
 def enhance_resolution(image, scale=2):
-    """
-    Priority:
-    1. RealESRGAN (AI)
-    2. Fallback: OpenCV resize
-    """
-
     if image is None:
         return None
 
-    # 🔥 Try RealESRGAN FIRST
-    upscaled = _upscale_with_realesrgan_ncnn_vulkan(image, scale=scale)
-    if upscaled is not None:
-        print("Using RealESRGAN")
-        return upscaled
+    height, width = image.shape[:2]
+    total_pixels = height * width
 
-    # ❌ Fallback
-    print("Using OpenCV resize (fallback)")
+    # 🔥 Rule 1: Forced CPU mode
+    if config.FORCE_CPU_RESIZE:
+        print("Forced OpenCV resize")
+        return resize_image(image, scale=scale)
+
+    # 🔥 Rule 2: Auto decision
+    if config.AUTO_UPSCALE:
+        if total_pixels > config.MAX_AI_PIXELS:
+            print("Image too large, skipping AI upscale")
+            return resize_image(image, scale=scale)
+
+        upscaled = _upscale_with_realesrgan_ncnn_vulkan(image, scale=scale)
+        if upscaled is not None:
+            print("Using RealESRGAN (auto)")
+            return upscaled
+
+        print("AI failed → fallback to OpenCV")
+        return resize_image(image, scale=scale)
+
+    # 🔥 Rule 3: Manual mode
+    if config.USE_AI_UPSCALE:
+        upscaled = _upscale_with_realesrgan_ncnn_vulkan(image, scale=scale)
+        if upscaled is not None:
+            print("Using RealESRGAN")
+            return upscaled
+
+    print("Using OpenCV resize")
     return resize_image(image, scale=scale)

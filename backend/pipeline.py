@@ -3,29 +3,99 @@ from modules.smoothing import denoise_image
 from modules.resize import enhance_resolution
 from modules.sharpening import sharpen_image
 from modules.color_enhance import boost_saturation, adjust_brightness_contrast
+from utils import config
+from utils.analyzer import analyze_image
+
 
 def process_pipeline(image):
+    if image is None:
+        raise ValueError("process_pipeline requires a valid image array")
+
     results = {}
 
-    # 1. Light denoise (preserve details)
-    image = denoise_image(image, strength=5)
+    # 🔥 Analyze image FIRST
+    analysis = analyze_image(image)
+    print("Analysis:", analysis)
+
+    brightness = analysis["brightness"]
+    noise = analysis["noise"]
+
+    # =========================
+    # 1. Adaptive Denoise
+    # =========================
+    if noise < 50:
+        strength = 3
+    elif noise < 150:
+        strength = 5
+    else:
+        strength = 8
+
+    print("Denoise strength:", strength)
+
+    image = denoise_image(image, strength=strength)
     results["1_denoise"] = image.copy()
 
-    # 2. Upscale FIRST (critical)
-    image = enhance_resolution(image, scale=4)
+    # =========================
+    # 2. Upscale
+    # =========================
+    image = enhance_resolution(image, scale=config.UPSCALE_FACTOR)
     results["2_upscale"] = image.copy()
 
-    # 3. CLAHE (after upscale)
-    image = apply_clahe_hsv(image)
+    # =========================
+    # 3. Adaptive CLAHE
+    # =========================
+    if brightness < 80:
+        clip = 2.5
+    elif brightness < 150:
+        clip = 1.8
+    else:
+        clip = 1.2
+
+    print("CLAHE clip:", clip)
+
+    image = apply_clahe_hsv(
+        image,
+        clip_limit=clip,
+        tile_size=config.CLAHE_TILE_SIZE
+    )
     results["3_clahe"] = image.copy()
 
-    # 4. Color correction (controlled)
-    image = boost_saturation(image, scale=1.1)
-    image = adjust_brightness_contrast(image, brightness=5, contrast=1.08)
+    # =========================
+    # 4. Adaptive Color
+    # =========================
+    if brightness < 80:
+        sat = 1.2
+    elif brightness > 180:
+        sat = 1.05
+    else:
+        sat = 1.1
+
+    print("Saturation:", sat)
+
+    image = boost_saturation(image, scale=sat)
+
+    image = adjust_brightness_contrast(
+        image,
+        brightness=config.BRIGHTNESS,
+        contrast=config.CONTRAST
+    )
     results["4_color"] = image.copy()
 
-    # 5. Sharpen (final touch only)
-    image = sharpen_image(image)
+    # =========================
+    # 5. Sharpen
+    # =========================
+    sharpness = analysis["sharpness"]
+
+    if sharpness < 50:
+        sharp_strength = 2.0   # very blurry
+    elif sharpness < 150:
+        sharp_strength = 1.5
+    else:
+        sharp_strength = 1.0   # already sharp → don't overdo
+
+    print("Sharpen strength:", sharp_strength)
+
+    image = sharpen_image(image, strength=sharp_strength)
     results["5_final"] = image.copy()
 
     return image, results
