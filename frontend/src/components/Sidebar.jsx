@@ -60,7 +60,7 @@ function Sidebar({ showPipeline, setShowPipeline }) {
             {collapsed ? ">" : "<"}
           </button>
         </div>
-        <Link to="/" style={navItemStyle("/")}>
+        <Link to="/" style={navItemStyle("/")} className="hover-scale-subtle" title="Enhancement">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M2 12h4l3-9 5 18 3-9h5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -71,10 +71,21 @@ function Sidebar({ showPipeline, setShowPipeline }) {
         {location.pathname === "/" && (
           <button 
             onClick={() => setShowPipeline(prev => !prev)} 
-            style={{...navItemStyle("#"), background: showPipeline ? theme.colors.surfaceHover : "transparent", color: showPipeline ? theme.colors.primary : theme.colors.muted}}
-            title="Toggle Timeline"  
+            style={{
+              ...navItemStyle("#"), 
+              background: showPipeline ? theme.colors.surfaceHover : "transparent", 
+              color: showPipeline ? theme.colors.primary : theme.colors.muted,
+              paddingLeft: collapsed ? "14px" : "46px", // Indented as a sub-feature
+              paddingTop: "8px",
+              paddingBottom: "8px",
+              marginTop: "-4px",
+              marginBottom: "8px",
+              fontSize: "13px"
+            }}
+            className="hover-scale-subtle"
+            title={showPipeline ? "Hide Timeline" : "Show Timeline"}  
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
               <line x1="16" y1="3" x2="16" y2="21"></line>
             </svg>
@@ -82,7 +93,7 @@ function Sidebar({ showPipeline, setShowPipeline }) {
           </button>
         )}
         
-        <Link to="/encode" style={navItemStyle("/encode")}>
+        <Link to="/encode" style={navItemStyle("/encode")} className="hover-scale-subtle" title="Encoding">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
              <path d="M7 11V7a5 5 0 0110 0v4"></path>
@@ -90,7 +101,7 @@ function Sidebar({ showPipeline, setShowPipeline }) {
           {!collapsed && <span>Encoding</span>}
         </Link>
 
-        <Link to="/decode" style={navItemStyle("/decode")}>
+        <Link to="/decode" style={navItemStyle("/decode")} className="hover-scale-subtle" title="Decoding">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
@@ -99,7 +110,7 @@ function Sidebar({ showPipeline, setShowPipeline }) {
         </Link>
 
         <div style={{ marginTop: "auto", borderTop: `1px solid ${theme.colors.borderSoft}`, paddingTop: "24px" }}>
-          <div onClick={toggleTheme} style={navItemStyle("#")}>
+          <div onClick={toggleTheme} style={navItemStyle("#")} className="hover-scale-subtle" title={isDark ? "Light Mode" : "Dark Mode"}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               {isDark ? (
                 <>

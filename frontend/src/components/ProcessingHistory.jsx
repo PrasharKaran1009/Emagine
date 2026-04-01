@@ -36,14 +36,14 @@ function ProcessingHistory({ result, selectedStep, onStepClick }) {
           return (
             <div 
               key={key} 
-              className="card-animated window-glow" 
+              className="hover-scale-subtle animate-slide-in"
               onClick={() => onStepClick(isActive ? null : key)}
               style={{
                 ...styles.historyCard,
                 background: isActive ? theme.colors.surfaceHover : theme.colors.background,
                 border: `1px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
+                boxShadow: isActive ? theme.glow : "none",
                 cursor: "pointer",
-                transition: "all 0.2s"
               }}
             >
               <div style={styles.cardInfo}>

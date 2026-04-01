@@ -2,38 +2,38 @@ import React, { createContext, useState, useContext } from "react";
 
 export const lightTheme = {
   colors: {
-    primary: "#6366f1",
-    secondary: "#8b5cf6",
-    background: "#f8fafc",
-    surface: "#ffffff",
-    surfaceHover: "rgba(0, 0, 0, 0.05)",
-    surfaceGlass: "rgba(255, 255, 255, 0.9)",
-    border: "rgba(0, 0, 0, 0.1)",
-    borderSoft: "rgba(0, 0, 0, 0.05)",
-    text: "#0f172a",
-    muted: "#64748b",
-    error: "#ef4444",
+    primary: "#00B36B", // emerald
+    secondary: "#00995C", 
+    background: "#F4F6F4", 
+    surface: "#FFFFFF",
+    surfaceHover: "#EDEFF0",
+    surfaceGlass: "rgba(255, 255, 255, 0.85)",
+    border: "rgba(0,150,90,0.15)",
+    borderSoft: "rgba(0,150,90,0.08)",
+    text: "#1A1A1A",
+    muted: "#5A5A5A",
+    error: "#DC2626",
     success: "#10b981",
   },
-  glow: "0 4px 30px rgba(99, 102, 241, 0.1), 0 1px 5px rgba(0,0,0,0.05)",
+  glow: "0 8px 30px rgba(0, 0, 0, 0.04), 0 0 20px rgba(0, 179, 107, 0.15)", // emerald ambient bounce
 };
 
 export const darkTheme = {
   colors: {
-    primary: "#818cf8",
-    secondary: "#a78bfa",
-    background: "#08080a",
-    surface: "rgba(20, 20, 26, 0.6)",
-    surfaceHover: "rgba(255, 255, 255, 0.08)",
-    surfaceGlass: "rgba(12, 12, 16, 0.8)",
-    border: "rgba(255, 255, 255, 0.1)",
-    borderSoft: "rgba(255, 255, 255, 0.04)",
-    text: "#ffffff",
-    muted: "#9ca3af",
-    error: "#f87171",
+    primary: "#D6CDBF", // champagne / gold
+    secondary: "#E7DFD2",
+    background: "#080808", // ultra deep black
+    surface: "#121212", // pure black interface
+    surfaceHover: "#1A1A1A", 
+    surfaceGlass: "rgba(18, 18, 18, 0.8)",
+    border: "rgba(255, 255, 255, 0.06)", 
+    borderSoft: "rgba(255, 255, 255, 0.03)",
+    text: "#E8E6E3",
+    muted: "#8A8A8A",
+    error: "#F04444",
     success: "#34d399",
   },
-  glow: "0 0 40px rgba(129, 140, 248, 0.1), 0 0 15px rgba(255,255,255,0.02)",
+  glow: "0 15px 40px rgba(0, 0, 0, 0.4), 0 0 24px rgba(214, 205, 191, 0.08)", // champagne ambient tint
 };
 
 const ThemeContext = createContext();

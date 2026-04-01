@@ -80,11 +80,11 @@ function UploadBox({ setImage, setProcessing, setResult }) {
         ...styles.box,
         background: theme.colors.surface,
         border: dragging
-          ? `2px solid ${theme.colors.primary}`
-          : `2px dashed ${theme.colors.border}`,
+          ? `2px dashed ${theme.colors.primary}`
+          : `1px solid ${theme.colors.borderSoft}`,
         boxShadow: dragging
-          ? `0 0 20px ${theme.colors.primary}40`
-          : "none",
+          ? `0 0 30px ${theme.colors.primary}40`
+          : theme.glow,
       }}
       onDragOver={(e) => {
         e.preventDefault();
@@ -120,8 +120,8 @@ function UploadBox({ setImage, setProcessing, setResult }) {
 const styles = {
   box: {
     width: "100%",
-    height: "320px",
-    borderRadius: "20px",
+    height: "460px", // Massive drop-zone
+    borderRadius: "32px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

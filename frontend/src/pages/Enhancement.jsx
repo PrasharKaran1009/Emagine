@@ -10,7 +10,7 @@ function Enhancement({ showPipeline }) {
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState(null);
   const [selectedStep, setSelectedStep] = useState(null);
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
 
   const stepOrder = ["1_denoise", "2_upscale", "3_clahe", "4_color", "5_final"];
 
@@ -36,6 +36,8 @@ function Enhancement({ showPipeline }) {
 
   const displayBefore = useMemo(() => {
     if (!selectedStep) return image;
+    if (selectedStep === "5_final") return image; // override: final always compares to original
+
     const index = stepOrder.indexOf(selectedStep);
     
     if (index > 0) {
@@ -54,19 +56,40 @@ function Enhancement({ showPipeline }) {
   };
 
   return (
-    <div style={{ display: "flex", width: "100%", height: "100%", flexGrow: 1, backgroundColor: theme.colors.background }}>
+    <div style={{ 
+      display: "flex", 
+      width: "100%", 
+      height: "100%", 
+      flexGrow: 1,
+    }}>
       
       {/* --- CENTER CANVAS --- */}
-      <div style={styles.centerPanel}>
+      <div style={{
+        ...styles.centerPanel,
+        background: theme.colors.surface,
+        backgroundImage: isDark 
+          ? "conic-gradient(from 0deg, rgba(214,205,191,0.06), rgba(214,205,191,0.01), rgba(214,205,191,0.06))" 
+          : "conic-gradient(from 0deg, rgba(0,179,107,0.08), rgba(0,179,107,0.01), rgba(0,179,107,0.08))",
+        border: `1px solid ${theme.colors.borderSoft}`,
+        boxShadow: `inset 0 0 40px ${isDark ? "rgba(214,205,191,0.05)" : "rgba(0,179,107,0.12)"}, ${theme.glow}`, // Adding the inspectionInsetGlow from the snippet to the surface
+      }}>
         
-        <div style={styles.header}>
-          <h1 style={{...styles.title, color: theme.colors.text}}>Live Interactive Console</h1>
-          <p style={{...styles.subtitle, color: theme.colors.muted}}>
-            Upload a low-quality image and watch the intelligence pipeline progressively upscale, clean, and color-correct it in real-time.
-          </p>
-        </div>
+        <div style={{
+           width: "100%", 
+           display: "flex",
+           flexDirection: "column",
+           alignItems: "center",
+        }}>
+          {!image && (
+            <div style={styles.header}>
+              <h1 style={{...styles.title, color: theme.colors.text}}>Live Interactive Console</h1>
+              <p style={{...styles.subtitle, color: theme.colors.muted}}>
+                Upload a low-quality image and watch the intelligence pipeline progressively upscale, clean, and color-correct it in real-time.
+              </p>
+            </div>
+          )}
 
-        <div style={styles.interactiveArea}>
+          <div style={styles.interactiveArea}>
           {!image && (
             <UploadBox
               setImage={setImage}
@@ -112,6 +135,7 @@ function Enhancement({ showPipeline }) {
           )}
         </div>
       </div>
+    </div>
 
       {/* --- RIGHT PANEL --- */}
       {showPipeline && (
@@ -131,11 +155,13 @@ function Enhancement({ showPipeline }) {
 const styles = {
   centerPanel: {
     flexGrow: 1,
+    margin: "16px",
     padding: "64px",
     overflowY: "auto",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    borderRadius: "24px",
   },
   header: {
     width: "100%",
@@ -157,7 +183,7 @@ const styles = {
   },
   interactiveArea: {
     width: "100%",
-    maxWidth: "960px",
+    maxWidth: "1000px", // widened for premium stage feel
     display: "flex",
     flexDirection: "column",
     alignItems: "center",

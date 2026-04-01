@@ -8,6 +8,56 @@ function ImageSlider({ before, after, allSteps, activeStepKey, onClose, processi
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  // --- Zoom & Pan Logic ---
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault(); // Stop entire page from zooming or scrolling
+      setScale((prevScale) => {
+        // Zoom speed multiplier: 0.005
+        const newScale = Math.min(Math.max(1, prevScale - e.deltaY * 0.005), 8);
+        if (newScale === 1) {
+          setPosition({ x: 0, y: 0 });
+        }
+        return newScale;
+      });
+    };
+
+    // { passive: false } allows us to preventDefault() on wheel securely
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, []);
+
+  const handlePointerDown = (e) => {
+    if (scale <= 1) return;
+    setIsDragging(true);
+    dragStart.current = { x: e.clientX - position.x, y: e.clientY - position.y };
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging) return;
+    setPosition({
+      x: e.clientX - dragStart.current.x,
+      y: e.clientY - dragStart.current.y
+    });
+  };
+
+  const handlePointerUp = () => setIsDragging(false);
+
+  const handleDoubleClick = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+  // -------------------------
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -81,12 +131,27 @@ function ImageSlider({ before, after, allSteps, activeStepKey, onClose, processi
     <div style={styles.wrapper}>
       {/* Container simulating the reference screenshots */}
       <div style={{ ...styles.card, background: theme.colors.surfaceGlass, border: `1px solid ${theme.colors.borderSoft}` }}>
-        <div style={styles.imageContainer}>
+        <div 
+          ref={containerRef}
+          style={styles.imageContainer}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+          onDoubleClick={handleDoubleClick}
+        >
           
           <img 
             src={view === "before" ? before : after} 
             alt={view}
-            style={styles.image} 
+            style={{
+               ...styles.image,
+               transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+               cursor: scale > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in",
+               transition: isDragging ? "none" : "transform 0.1s ease-out",
+               willChange: "transform"
+            }} 
+            draggable={false} // Native image dragging contradicts our canvas panning
           />
 
           {/* Top Left Floating Toggle Pill */}
@@ -220,9 +285,9 @@ function ImageSlider({ before, after, allSteps, activeStepKey, onClose, processi
         <button 
           style={{
             ...styles.downloadBtn,
-            background: "#b829e3", // vibrant purple from reference image
-            color: "#ffffff",
-            boxShadow: `0 4px 15px rgba(184, 41, 227, 0.4)`
+            background: theme.colors.primary,
+            color: isDark ? "#000000" : "#FFFFFF", 
+            boxShadow: `0 4px 15px ${theme.colors.primary}60`
           }} 
           onClick={handleDownload}
         >
@@ -274,10 +339,11 @@ const styles = {
   image: {
     width: "auto",
     maxWidth: "100%",
-    maxHeight: "70vh", // dynamically fits to full image correctly without cropping
+    maxHeight: "75vh", // elegantly scaled up to command the stage
     objectFit: "contain",
     display: "block",
     borderRadius: "8px",
+    transformOrigin: "center center",
   },
   toggleWrapper: {
     position: "absolute",

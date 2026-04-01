@@ -13,20 +13,10 @@ function Header() {
       }}
     >
       <div style={styles.left}>
-
         <span style={{ ...styles.brand, color: theme.colors.text }}>EMAGINE</span>
-        <span
-          style={{
-            ...styles.badge,
-            border: `1px solid ${theme.colors.borderSoft}`,
-            color: theme.colors.muted,
-          }}
-        >
-          PIPELINE ACTIVE
-        </span>
       </div>
       <div style={styles.right}>
-        <span style={{ color: theme.colors.muted, fontSize: "12px", fontWeight: "600" }}>v2.0</span>
+        <span style={{ color: theme.colors.muted, fontSize: "12px", fontWeight: "600" }}>v1.0</span>
       </div>
     </header>
   );
@@ -53,16 +43,6 @@ const styles = {
     fontWeight: "900",
     letterSpacing: "1px",
     marginTop: "2px", 
-  },
-  badge: {
-    fontSize: "10px",
-    fontWeight: "700",
-    padding: "6px 12px",
-    borderRadius: "20px",
-    letterSpacing: "0.5px",
-    textTransform: "uppercase",
-    marginLeft: "4px",
-    background: "transparent",
   },
   right: {
     display: "flex",
