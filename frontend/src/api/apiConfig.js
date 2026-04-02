@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://emagine.onrender.com";
 
 export const API_ENDPOINTS = {
   PROCESS: `${API_BASE_URL}/process`,
