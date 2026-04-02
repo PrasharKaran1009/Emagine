@@ -4,6 +4,7 @@ import Loader from "../components/Loader";
 import ImageSlider from "../components/ImageSlider";
 import EncodeAnimation from "../components/EncodeAnimation";
 import { useTheme } from "../theme/ThemeContext";
+import { API_ENDPOINTS } from "../api/apiConfig";
 
 function Encode() {
   const [file, setFile] = useState(null);
@@ -36,7 +37,7 @@ function Encode() {
       formData.append("file", file);
       formData.append("message", message);
 
-      const res = await fetch("http://localhost:8000/encode", {
+      const res = await fetch(API_ENDPOINTS.ENCODE, {
         method: "POST",
         body: formData,
       });

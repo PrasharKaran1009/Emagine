@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTheme } from "../theme/ThemeContext";
+import { API_ENDPOINTS } from "../api/apiConfig";
 
 function UploadBox({ setImage, setProcessing, setResult, onUpload }) {
   const [dragging, setDragging] = useState(false);
@@ -27,7 +28,7 @@ function UploadBox({ setImage, setProcessing, setResult, onUpload }) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("http://localhost:8000/process_stream", {
+      const res = await fetch(API_ENDPOINTS.PROCESS_STREAM, {
         method: "POST",
         body: formData,
       });

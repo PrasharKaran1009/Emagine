@@ -3,6 +3,7 @@ import UploadBox from "../components/UploadBox";
 import Loader from "../components/Loader";
 import DecodeAnimation from "../components/DecodeAnimation";
 import { useTheme } from "../theme/ThemeContext";
+import { API_ENDPOINTS } from "../api/apiConfig";
 
 function Decode() {
   const [file, setFile] = useState(null);
@@ -34,7 +35,7 @@ function Decode() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("http://localhost:8000/decode", {
+      const res = await fetch(API_ENDPOINTS.DECODE, {
         method: "POST",
         body: formData,
       });

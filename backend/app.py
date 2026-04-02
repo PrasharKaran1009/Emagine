@@ -3,9 +3,10 @@ import numpy as np
 import os
 import glob
 import json
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from enhancement.pipeline import process_pipeline, process_pipeline_stream
 import uuid
 from encoding.encode_bridge import encode_message
@@ -25,6 +26,9 @@ app.add_middleware(
 OUTPUT_DIR = "output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+# Static Files serving for the output dir
+app.mount("/output", StaticFiles(directory=OUTPUT_DIR), name="output")
+
 def clear_output_directory():
     try:
         files = glob.glob(os.path.join(OUTPUT_DIR, "*.jpg"))
@@ -41,7 +45,7 @@ clear_output_directory()
 
 
 @app.post("/process")
-async def process_image(file: UploadFile = File(...)):
+async def process_image(request: Request, file: UploadFile = File(...)):
     clear_output_directory()
     try:
         # Read image
@@ -60,14 +64,16 @@ async def process_image(file: UploadFile = File(...)):
         for name, img in steps.items():
             path = os.path.join(OUTPUT_DIR, f"{name}.jpg")
             cv2.imwrite(path, img)
-            step_urls[name] = f"http://127.0.0.1:8000/output/{name}.jpg"
+            base_url = str(request.base_url)
+            step_urls[name] = f"{base_url}output/{name}.jpg"
 
         #  Save final
         final_path = os.path.join(OUTPUT_DIR, "result.jpg")
         cv2.imwrite(final_path, final_image)
 
+        base_url = str(request.base_url)
         return {
-            "final": "http://127.0.0.1:8000/output/result.jpg",
+            "final": f"{base_url}output/result.jpg",
             "steps": step_urls
         }
 
@@ -76,7 +82,7 @@ async def process_image(file: UploadFile = File(...)):
 
 
 @app.post("/process_stream")
-async def process_image_stream(file: UploadFile = File(...)):
+async def process_image_stream(request: Request, file: UploadFile = File(...)):
     clear_output_directory()
     try:
         contents = await file.read()
@@ -93,7 +99,8 @@ async def process_image_stream(file: UploadFile = File(...)):
                 for step_name, step_image in process_pipeline_stream(image):
                     path = os.path.join(OUTPUT_DIR, f"{step_name}.jpg")
                     cv2.imwrite(path, step_image)
-                    url = f"http://127.0.0.1:8000/output/{step_name}.jpg"
+                    base_url = str(request.base_url)
+                    url = f"{base_url}output/{step_name}.jpg"
                     
                     yield json.dumps({
                         "step": step_name,
@@ -113,7 +120,7 @@ async def process_image_stream(file: UploadFile = File(...)):
 
 
 @app.post("/encode")
-async def process_encode(file: UploadFile = File(...), message: str = Form(...)):
+async def process_encode(request: Request, file: UploadFile = File(...), message: str = Form(...)):
     try:
         temp_id = uuid.uuid4().hex
         ext = os.path.splitext(file.filename)[1] or ".png"
@@ -135,8 +142,9 @@ async def process_encode(file: UploadFile = File(...), message: str = Form(...))
         
         if os.path.exists(temp_input_path): os.remove(temp_input_path)
         
+        base_url = str(request.base_url)
         return {
-            "image_url": f"http://127.0.0.1:8000/output/{out_filename}",
+            "image_url": f"{base_url}output/{out_filename}",
             "message": "Encoded successfully"
         }
     except HTTPException as he:

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 import shutil
@@ -25,7 +25,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 @app.post("/process")
-async def process(image: UploadFile = File(...)):
+async def process(request: Request, image: UploadFile = File(...)):
     input_path = os.path.join(INPUT_DIR, "input.jpg")
 
     # Save uploaded file
@@ -43,13 +43,15 @@ async def process(image: UploadFile = File(...)):
     for name, im in steps.items():
         path = os.path.join(OUTPUT_DIR, f"{name}.jpg")
         cv2.imwrite(path, im)
-        step_paths[name] = f"http://127.0.0.1:8000/output/{name}.jpg"
+        base_url = str(request.base_url)
+        step_paths[name] = f"{base_url}output/{name}.jpg"
 
     final_path = os.path.join(OUTPUT_DIR, "result.jpg")
     cv2.imwrite(final_path, output)
 
+    base_url = str(request.base_url)
     return {
-        "final": "http://127.0.0.1:8000/output/result.jpg",
+        "final": f"{base_url}output/result.jpg",
         "steps": step_paths
     }
 
