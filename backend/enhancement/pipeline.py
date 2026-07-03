@@ -1,6 +1,6 @@
 from enhancement.modules.conversion import apply_clahe_hsv
 from enhancement.modules.smoothing import denoise_image
-from enhancement.modules.resize import enhance_resolution
+from enhancement.modules.resize import enhance_resolution, cap_input_size
 from enhancement.modules.sharpening import sharpen_image
 from enhancement.modules.color_enhance import boost_saturation, adjust_brightness_contrast
 from enhancement.utils import config
@@ -12,6 +12,9 @@ def process_pipeline(image):
         raise ValueError("process_pipeline requires a valid image array")
 
     results = {}
+
+    # Bound the working resolution so no step overruns a small CPU host.
+    image = cap_input_size(image)
 
     # 🔥 Analyze image FIRST
     analysis = analyze_image(image)
@@ -108,6 +111,9 @@ def process_pipeline_stream(image):
     """
     if image is None:
         raise ValueError("process_pipeline requires a valid image array")
+
+    # Bound the working resolution so no step overruns a small CPU host.
+    image = cap_input_size(image)
 
     # Analyze
     analysis = analyze_image(image)
